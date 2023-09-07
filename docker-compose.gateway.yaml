@@ -60,6 +60,8 @@ services:
   coordinate-resolver:
     container_name: coordinate-resolver
     image: knvelasquez/coordinateresolver:v1.1
+    ports:
+      - 9093:9093
     networks:
       - coordinate-resolver-network
 
