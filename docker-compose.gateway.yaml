@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  kenobi-api-gateway:
+    container_name: kenobi-api-gateway
+    image: nginx:latest    
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf  #Mount the custom configuration file
+    depends_on:
+      - jwt-auth
+      - router-satellite
+    networks:
+      - jwt-network
+      - router-satellite-network
+      
+  jwt-auth:
+    container_name: jwt-auth
+    image: knvelasquez/jwtauth:v1.2
+    environment:
+      - SPRING_BOOT_PORT=8081
+    networks:
+      - jwt-network
+      
+  router-satellite:
+    container_name: router-satellite
+    image: knvelasquez/routersatellite:v1.1
+    environment:
+      - SPRING_BOOT_PORT=${SPRING_BOOT_PORT:-8083}
+      - SATELLITE_NAME=kenobi
+    depends_on:
+      - jwt-auth
+      #- coordinate-resolver
+    networks:
+      - router-satellite-network
+      - coordinate-resolver-network
+      
+  zookeeper:
+    container_name: zookeeper
+    image: 'bitnami/zookeeper:latest'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    container_name: kafka
+    image: 'bitnami/kafka:latest'
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+    ports:
+      - '9092:9092'
+    depends_on:
+      - zookeeper
+    networks:
+      - coordinate-resolver-network
+      
+      
+  coordinate-resolver:
+    container_name: coordinate-resolver
+    image: knvelasquez/coordinateresolver:v1.1
+    networks:
+      - coordinate-resolver-network
+
+networks:
+  jwt-network:
+    driver: bridge
+
+  router-satellite-network:
+    driver: bridge
+ 
+  coordinate-resolver-network:
+    driver: bridge
+    
+    
+    #docker compose -f docker-compose.gateway.yaml up
+ 
+ 
